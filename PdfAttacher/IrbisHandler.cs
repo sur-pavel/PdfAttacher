@@ -13,15 +13,11 @@ namespace PdfAttacher
     class IrbisHandler
 
     {
-        ManagedClient64 client = new ManagedClient64();
-        IrbisRecord currentRecord = new IrbisRecord();
+        ManagedClient64 client = new ManagedClient64();        
         internal List<string> notFounded = new List<string>();
         internal int pdfPages = 0;
         private Logging logging;
         
-        private const string STAGE_OF_WORK = "Auto951Opac";
-
-
         public IrbisHandler(Logging logging)
         {
             this.logging = logging;

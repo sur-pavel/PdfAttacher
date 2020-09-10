@@ -24,11 +24,7 @@ namespace PdfAttacher
             logging = new Logging();
             logging.CreateLogFile();
             irbisHandler = new IrbisHandler(logging);
-            fileHandler = new FileHandler(logging);
-            //LoginTextBox.Text = "СПА";
-            //PasswordTextBox.Text = "1";
-            //PathFromTextBox.Text = @"d:\Auto951For\";
-            //PathToTextBox.Text = @"d:\Auto951Done\";
+            fileHandler = new FileHandler(logging);            
         }
 
         private void ConnectButton_Click(object sender, EventArgs e)
