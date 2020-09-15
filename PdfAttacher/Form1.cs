@@ -16,7 +16,9 @@ namespace PdfAttacher
         IrbisHandler irbisHandler;
         FileHandler fileHandler;
         Logging logging;
-
+        private const string NOT_FOUND_FOLDER = @"\not_found\";
+        private const string FEW_RECORDS_FOLDER = @"\2_records\";
+        private const string DOUBLET_FOLDER = @"\951_est\";
         public Form1()
         {
             InitializeComponent();
@@ -24,7 +26,13 @@ namespace PdfAttacher
             logging = new Logging();
             logging.CreateLogFile();
             irbisHandler = new IrbisHandler(logging);
-            fileHandler = new FileHandler(logging);            
+            fileHandler = new FileHandler(logging);
+            LoginTextBox.Text = "СПА";
+            PasswordTextBox.Text = "1";
+            DatabaseTextBox.Text = "MPDA";
+            PathFromTextBox.Text = @"d:\Auto951For";
+            PathToTextBox.Text = @"d:\Auto951Done";
+            TroublePathTextBox.Text = @"d:\Auto951Probl";
         }
 
         private void ConnectButton_Click(object sender, EventArgs e)
@@ -32,7 +40,7 @@ namespace PdfAttacher
             bool connected = irbisHandler.ConnectToServer(LoginTextBox.Text, PasswordTextBox.Text, DatabaseTextBox.Text);
             if (connected)
             {
-                InfoLabel.Text = "Connected!";
+                InfoLabel.Text = "Connected!";                
             }
             else
             {
@@ -44,6 +52,10 @@ namespace PdfAttacher
         {
             if (InfoLabel.Text.Equals("Connected!"))
             {
+
+                fileHandler.CreateFolder(TroublePathTextBox.Text + NOT_FOUND_FOLDER);
+                fileHandler.CreateFolder(TroublePathTextBox.Text + FEW_RECORDS_FOLDER);
+                fileHandler.CreateFolder(TroublePathTextBox.Text + DOUBLET_FOLDER);
                 FileInfo[] fileInfos = fileHandler.GetOldFileNames(PathFromTextBox.Text);
                 int filesLength = fileInfos.Length;
                 int inc = 0;
@@ -61,24 +73,24 @@ namespace PdfAttacher
                     if (irbisRequest.FileStatus == IrbisRequest.Status.Founded)
                     {
                         ChangeLogTextBox("Найдена запись" + Environment.NewLine);
-                        fileHandler.MoveFile(fileInfo, PathToTextBox.Text);
+                        fileHandler.MoveFile(fileInfo, PathToTextBox.Text + @"\");
                         founded++;
                     }
                     else if (irbisRequest.FileStatus == IrbisRequest.Status.NotFounded)
                     {
                         ChangeLogTextBox("Запись не найдена" + Environment.NewLine);
-                        fileHandler.MoveFile(fileInfo, TroublePathTextBox.Text);
+                        fileHandler.MoveFile(fileInfo, TroublePathTextBox.Text + NOT_FOUND_FOLDER);
                     }
                     else if (irbisRequest.FileStatus == IrbisRequest.Status.FewRecords)
                     {
                         ChangeLogTextBox("Найдено несколько записей" + Environment.NewLine);
-                        fileHandler.MoveFile(fileInfo, TroublePathTextBox.Text);
+                        fileHandler.MoveFile(fileInfo, TroublePathTextBox.Text + FEW_RECORDS_FOLDER);
                         founded++;
                     }
                     else if (irbisRequest.FileStatus == IrbisRequest.Status.Doublet)
                     {
                         ChangeLogTextBox("Поле 951^a заполнено" + Environment.NewLine);
-                        fileHandler.MoveFile(fileInfo, TroublePathTextBox.Text);
+                        fileHandler.MoveFile(fileInfo, TroublePathTextBox.Text + DOUBLET_FOLDER);
                         founded++;
                     }
 
@@ -97,13 +109,14 @@ namespace PdfAttacher
             }
         }
 
+       
 
         private void PathFromButton_Click(object sender, EventArgs e)
         {
             FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
             if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
             {
-                PathFromTextBox.Text = folderBrowserDialog.SelectedPath + @"\";
+                PathFromTextBox.Text = folderBrowserDialog.SelectedPath;
             }
         }
 
@@ -112,7 +125,7 @@ namespace PdfAttacher
             FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
             if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
             {
-                PathToTextBox.Text = folderBrowserDialog.SelectedPath + @"\";
+                PathToTextBox.Text = folderBrowserDialog.SelectedPath;
             }
         }
 
@@ -121,7 +134,7 @@ namespace PdfAttacher
             FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
             if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
             {
-                TroublePathTextBox.Text = folderBrowserDialog.SelectedPath + @"\";
+                TroublePathTextBox.Text = folderBrowserDialog.SelectedPath;
             }
         }
 

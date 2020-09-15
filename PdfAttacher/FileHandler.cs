@@ -26,7 +26,7 @@ namespace PdfAttacher
             DirectoryInfo info = new DirectoryInfo(pathFrom);
 
             FileInfo[] files = info.GetFiles("*.pdf");
-            if(files.Length == 0)
+            if (files.Length == 0)
             {
                 MessageBox.Show("В папке \"" + pathFrom + "\" нет pdf-файлов");
             }
@@ -38,24 +38,26 @@ namespace PdfAttacher
         {
             try
             {
-                File.Move(fileInfo.FullName, pathTo + @"\" + fileInfo.Name);
+
+                File.Move(fileInfo.FullName, pathTo + fileInfo.Name);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message + "\n" + ex.ToString());
+                logging.WriteLine(pathTo + fileInfo.Name);
                 logging.WriteLine("EXCEPTION: " + ex);
             }
         }
 
-        internal void RenameFile(FileInfo fileInfo)
+        internal void CreateFolder(string directory)
         {
             try
             {
-                File.Move(fileInfo.FullName, fileInfo.DirectoryName + @"\w_" + fileInfo.Name);
+                Directory.CreateDirectory(directory);
+                logging.WriteLine("Directory \"" + directory + "\" was created");
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message + "\n" + ex.ToString());
                 logging.WriteLine("EXCEPTION: " + ex);
             }
         }
