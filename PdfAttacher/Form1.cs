@@ -52,7 +52,6 @@ namespace PdfAttacher
         {
             if (InfoLabel.Text.Equals("Connected!"))
             {
-
                 fileHandler.CreateFolder(TroublePathTextBox.Text + NOT_FOUND_FOLDER);
                 fileHandler.CreateFolder(TroublePathTextBox.Text + FEW_RECORDS_FOLDER);
                 fileHandler.CreateFolder(TroublePathTextBox.Text + DOUBLET_FOLDER);

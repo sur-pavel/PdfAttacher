@@ -254,17 +254,17 @@ namespace PdfAttacher
 
 
             int[] foundRecordsMFN = client.SequentialSearch(searchYear, searchTitle);
+            logging.WriteLine("MFNs count = " + foundRecordsMFN.Length);
             if (foundRecordsMFN.Length < 1 && titleKeyWords.Length > 3)
             {
                 Array.Resize(ref titleKeyWords, 3);
                 SequentialSearch(client, author, titleKeyWords, year, volNum);
             }
-            else if (foundRecordsMFN.Length < 1 && titleKeyWords.Length > 2)
+            if (foundRecordsMFN.Length < 1 && titleKeyWords.Length > 2)
             {
                 Array.Resize(ref titleKeyWords, 2);
                 SequentialSearch(client, author, titleKeyWords, year, volNum);
-            }
-            logging.WriteLine("MFNs count = " + foundRecordsMFN.Length);
+            }            
             return foundRecordsMFN;
         }
 
@@ -278,7 +278,7 @@ namespace PdfAttacher
             string searchTherm = builder.ToString();
             logging.WriteLine("Search Therm: " + searchTherm);
 
-            return client.Search("(KA = сагарда$) * (T = лекции$)*(G = 2004$)");
+            return client.Search(searchTherm);
         }
 
 
@@ -345,7 +345,7 @@ namespace PdfAttacher
 
         private string CleanWord(string word)
         {
-            return Regex.Replace(word, "[-.?!)(,:]", "");
+            return Regex.Replace(word, "[-.?!)(,:«»\"\"]", "");
         }
 
         private void WriteToRecord(IrbisRecord record, FileInfo fileInfo)
