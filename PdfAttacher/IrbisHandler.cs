@@ -13,11 +13,11 @@ namespace PdfAttacher
     class IrbisHandler
 
     {
-        ManagedClient64 client = new ManagedClient64();        
+        ManagedClient64 client = new ManagedClient64();
         internal List<string> notFounded = new List<string>();
         internal int pdfPages = 0;
         private Logging logging;
-        
+
         public IrbisHandler(Logging logging)
         {
             this.logging = logging;
@@ -25,7 +25,7 @@ namespace PdfAttacher
 
         internal bool ConnectToServer(string login, string password, string database)
         {
-            
+
             bool connected = false;
             try
             {
@@ -66,53 +66,62 @@ namespace PdfAttacher
             return disconnected;
         }
 
-        internal bool SearchInIrbis(FileInfo fileInfo)
+        internal IrbisRequest SearchInIrbis(FileInfo fileInfo)
         {
-            bool founded = false;
-
+            IrbisRequest irbisRequest = new IrbisRequest();
             string reformatFileName = ReformatFileName(fileInfo);
-
-            string author = GetAuthor(reformatFileName);
-            string title = GetTitle(reformatFileName);
-            string[] titleKeyWords = GetTitleKeyWords(title);
-            string year = GetYear(reformatFileName);
-            string volNum = GetVolumeNumber(fileInfo);
+            irbisRequest.Author = GetAuthor(reformatFileName);
+            irbisRequest.Title = GetTitle(reformatFileName);
+            irbisRequest.TitleKeyWords = GetTitleKeyWords(irbisRequest.Title);
+            irbisRequest.Year = GetYear(reformatFileName);
+            irbisRequest.VolNum = GetVolumeNumber(fileInfo);
             try
             {
-                if (!year.Equals(""))
+
+                if (!irbisRequest.Year.Equals("") && irbisRequest.TitleKeyWords.Length > 0)
                 {
-                    int[] foundRecordsMFN = SequentialSearch(client, author, titleKeyWords, year, volNum);
+                    int[] foundRecordsMFN = SequentialSearch(client,
+                        irbisRequest.Author, irbisRequest.TitleKeyWords,
+                        irbisRequest.Year, irbisRequest.VolNum);
 
                     logging.WriteLine("Filename: " + fileInfo.Name + "\n");
                     if (foundRecordsMFN.Length < 1)
                     {
                         logging.WriteLine("No founded records in Irbis");
+                        irbisRequest.FileStatus = IrbisRequest.Status.NotFounded;
                     }
                     else
                     {
-                        founded = true;
-                        logging.WriteLine("Founded records in Irbis: " + foundRecordsMFN.Length);
-                        logging.WriteLine("First record MFN =" + foundRecordsMFN[0]);
-                        IrbisRecord record = client.ReadRecord(foundRecordsMFN[0]);
-
-                        RecordField[] fields951 = record.Fields.GetField("951");
-
-                        if (fields951.Length < 1)
+                        if (foundRecordsMFN.Length == 1)
                         {
-                            WriteToRecord(record, fileInfo);
+                            irbisRequest.FileStatus = IrbisRequest.Status.Founded;
+                            logging.WriteLine("Founded 1 record in Irbis with MFN " + foundRecordsMFN[0]);
                         }
                         else
                         {
-                            foreach (var field in fields951)
-                            {
-                                if (!field.ToText().Contains(".pdf"))
-                                {
-                                    WriteToRecord(record, fileInfo);
-                                }
-                            }
+                            irbisRequest.FileStatus = IrbisRequest.Status.FewRecords;
+                            logging.WriteLine("Founded " + foundRecordsMFN.Length + " in irbis");
                         }
 
-
+                        foreach (int mfn in foundRecordsMFN)
+                        {
+                            IrbisRecord record = client.ReadRecord(mfn);
+                            irbisRequest.FileNameFromRecord = GetFileNameFromRecord(record);
+                            logging.WriteLine("File name from record: " + irbisRequest.FileNameFromRecord);
+                            string[] fields951A = record.FMA("951", 'A');
+                            foreach (string field in fields951A)
+                            {
+                                if (!field.Equals(""))
+                                {
+                                    irbisRequest.FileStatus = IrbisRequest.Status.Doublet;
+                                    break;
+                                }
+                            }
+                            if (irbisRequest.FileStatus != IrbisRequest.Status.Doublet)
+                            {
+                                //WriteToRecord(record, fileInfo);
+                            }
+                        }
                     }
                 }
 
@@ -124,7 +133,44 @@ namespace PdfAttacher
                 logging.WriteLine(ex.StackTrace);
                 logging.WriteLine(ex.ToString());
             }
-            return founded;
+            return irbisRequest;
+        }
+
+        private string GetFileNameFromRecord(IrbisRecord record)
+        {
+
+            string fileName;
+            string lastName;
+            string title;
+            string year;
+            string volume = GetSubField(record, 200, 'v');
+
+            if (volume.Equals(""))
+            {
+                lastName = GetSubField(record, 700, 'a');
+
+                title = GetSubField(record, 200, 'a');
+                title = CheckTitleLength(title);
+
+                year = GetSubField(record, 210, 'd');
+            }
+            else
+            {
+                lastName = GetSubField(record, 961, 'a');
+
+                title = GetSubField(record, 461, 'c');
+
+                year = GetSubField(record, 210, 'd');
+                year = year.Equals("") ? GetSubField(record, 461, 'h') : year;
+            }
+
+            fileName = string.Format(
+            "{0}_{1}_{2}_{3}",
+             lastName, title, volume, year
+            );
+
+
+            return fileName;
         }
 
         private string GetVolumeNumber(FileInfo file)
@@ -138,9 +184,6 @@ namespace PdfAttacher
             }
             return volNum;
         }
-
-
-
         internal string ReformatFileName(FileInfo file)
         {
             string fileName = file.ToString()
@@ -148,7 +191,7 @@ namespace PdfAttacher
                 .Replace(".", ". ")
                 .Replace("--", " ")
                 .Replace("-", " ");
-            fileName = Regex.Replace(fileName, @"^\d+_", "");
+            fileName = Regex.Replace(fileName, @"^\d+_|^\d\w_", "");
 
             logging.WriteLine("Reformated file name: " + fileName);
 
@@ -202,7 +245,7 @@ namespace PdfAttacher
             }
 
             string searchYear = string.Format("\"G={0}\"", year);
-            string searchTitle = String.Join(" and ", filteredKeyWords.ToArray());
+            string searchTitle = string.Join(" and ", filteredKeyWords.ToArray());
 
             //searchTitle = "v200: 'Жизнь' and v200: 'митрополита'";
 
@@ -221,9 +264,22 @@ namespace PdfAttacher
                 Array.Resize(ref titleKeyWords, 2);
                 SequentialSearch(client, author, titleKeyWords, year, volNum);
             }
+            logging.WriteLine("MFNs count = " + foundRecordsMFN.Length);
             return foundRecordsMFN;
         }
 
+        private int[] SimpleSearch(ManagedClient64 client, string author, string title, string year)
+        {
+            StringBuilder builder = new StringBuilder();
+            builder.AppendFormat("\"KA={0}$\"", author);
+            builder.AppendFormat("*\"T={0}$\"", title);
+            builder.AppendFormat("*\"G={0}$\"", year);
+
+            string searchTherm = builder.ToString();
+            logging.WriteLine("Search Therm: " + searchTherm);
+
+            return client.Search("(KA = сагарда$) * (T = лекции$)*(G = 2004$)");
+        }
 
 
 
@@ -249,12 +305,22 @@ namespace PdfAttacher
             string titleClean = CleanWord(title);
             IStemmer stemmer = new RussianStemmer();
             string[] titleKeyWords = titleClean.Split(' ');
+            bool notRus = false;
+            if (Regex.IsMatch(titleKeyWords[0], "[A-z]"))
+            {
+                notRus = true;
+            }
             List<string> keyWords = new List<string>();
+
             foreach (string titleKeyWord in titleKeyWords)
             {
                 string keyWord = stemmer.Stem(titleKeyWord);
                 if (keyWord.Length > 2)
                 {
+                    if (notRus == true && !Regex.IsMatch(keyWord, "[A-z]"))
+                    {
+                        break;
+                    }
                     keyWords.Add(keyWord);
                 }
             }
@@ -300,6 +366,38 @@ namespace PdfAttacher
                 logging.WriteLine(ex.Message);
                 logging.WriteLine(ex.StackTrace);
             }
+        }
+
+
+        private string GetSubField(IrbisRecord irbisRecord, int num, char code)
+        {
+
+            string field = num.ToInvariantString();
+            string subField = irbisRecord
+                .Fields
+                .GetField(field)
+                .GetSubField(code)
+                .GetSubFieldText()
+                .FirstOrDefault();
+            return subField == null ? "" : subField;
+        }
+
+        private static string CheckTitleLength(string title)
+        {
+            string[] titleWords = title.Split(' ');
+            int wordsInTitle = 15;
+            if (titleWords.Length > wordsInTitle)
+            {
+                StringBuilder builder = new StringBuilder();
+                for (int i = 0; i < wordsInTitle; i++)
+                {
+                    builder.Append(titleWords[i]);
+                    if (i != wordsInTitle - 1) builder.Append(" ");
+                }
+                builder.Append("...");
+                title = builder.ToString();
+            }
+            return title;
         }
     }
 }

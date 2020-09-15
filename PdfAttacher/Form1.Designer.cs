@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.LoginLabel = new System.Windows.Forms.Label();
             this.LoginTextBox = new System.Windows.Forms.TextBox();
             this.PasswordTextBox = new System.Windows.Forms.TextBox();
@@ -46,6 +47,9 @@
             this.DisconnectButton = new System.Windows.Forms.Button();
             this.ProgressBar = new System.Windows.Forms.ProgressBar();
             this.LogTextBox = new System.Windows.Forms.TextBox();
+            this.TroublPathButton = new System.Windows.Forms.Button();
+            this.TroublePathTextBox = new System.Windows.Forms.TextBox();
+            this.TroubleLabel = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // LoginLabel
@@ -109,7 +113,7 @@
             // 
             // AttachButton
             // 
-            this.AttachButton.Location = new System.Drawing.Point(285, 258);
+            this.AttachButton.Location = new System.Drawing.Point(268, 295);
             this.AttachButton.Name = "AttachButton";
             this.AttachButton.Size = new System.Drawing.Size(85, 23);
             this.AttachButton.TabIndex = 7;
@@ -190,25 +194,55 @@
             // 
             // ProgressBar
             // 
-            this.ProgressBar.Location = new System.Drawing.Point(50, 298);
+            this.ProgressBar.Location = new System.Drawing.Point(50, 335);
             this.ProgressBar.Name = "ProgressBar";
             this.ProgressBar.Size = new System.Drawing.Size(983, 23);
             this.ProgressBar.TabIndex = 17;
+            this.ProgressBar.Click += new System.EventHandler(this.ProgressBar_Click);
             // 
             // LogTextBox
             // 
-            this.LogTextBox.Location = new System.Drawing.Point(50, 337);
+            this.LogTextBox.Location = new System.Drawing.Point(50, 382);
             this.LogTextBox.Multiline = true;
             this.LogTextBox.Name = "LogTextBox";
             this.LogTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.LogTextBox.Size = new System.Drawing.Size(983, 275);
             this.LogTextBox.TabIndex = 18;
             // 
+            // TroublPathButton
+            // 
+            this.TroublPathButton.Location = new System.Drawing.Point(549, 252);
+            this.TroublPathButton.Name = "TroublPathButton";
+            this.TroublPathButton.Size = new System.Drawing.Size(75, 23);
+            this.TroublPathButton.TabIndex = 21;
+            this.TroublPathButton.Text = "Открыть";
+            this.TroublPathButton.UseVisualStyleBackColor = true;
+            this.TroublPathButton.Click += new System.EventHandler(this.TroublPathButton_Click);
+            // 
+            // TroublePathTextBox
+            // 
+            this.TroublePathTextBox.Location = new System.Drawing.Point(112, 252);
+            this.TroublePathTextBox.Name = "TroublePathTextBox";
+            this.TroublePathTextBox.Size = new System.Drawing.Size(409, 20);
+            this.TroublePathTextBox.TabIndex = 20;
+            // 
+            // TroubleLabel
+            // 
+            this.TroubleLabel.AutoSize = true;
+            this.TroubleLabel.Location = new System.Drawing.Point(12, 255);
+            this.TroubleLabel.Name = "TroubleLabel";
+            this.TroubleLabel.Size = new System.Drawing.Size(73, 13);
+            this.TroubleLabel.TabIndex = 19;
+            this.TroubleLabel.Text = "Проблемные";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1082, 624);
+            this.ClientSize = new System.Drawing.Size(1082, 682);
+            this.Controls.Add(this.TroublPathButton);
+            this.Controls.Add(this.TroublePathTextBox);
+            this.Controls.Add(this.TroubleLabel);
             this.Controls.Add(this.LogTextBox);
             this.Controls.Add(this.ProgressBar);
             this.Controls.Add(this.DisconnectButton);
@@ -227,8 +261,9 @@
             this.Controls.Add(this.PasswordLabel);
             this.Controls.Add(this.LoginTextBox);
             this.Controls.Add(this.LoginLabel);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
-            this.Text = "Form1";
+            this.Text = "PDF Attacher";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -255,6 +290,9 @@
         private System.Windows.Forms.Button DisconnectButton;
         private System.Windows.Forms.ProgressBar ProgressBar;
         private System.Windows.Forms.TextBox LogTextBox;
+        private System.Windows.Forms.Button TroublPathButton;
+        private System.Windows.Forms.TextBox TroublePathTextBox;
+        private System.Windows.Forms.Label TroubleLabel;
     }
 }
 

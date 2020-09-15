@@ -25,7 +25,11 @@ namespace PdfAttacher
 
             DirectoryInfo info = new DirectoryInfo(pathFrom);
 
-            FileInfo[] files = info.GetFiles();
+            FileInfo[] files = info.GetFiles("*.pdf");
+            if(files.Length == 0)
+            {
+                MessageBox.Show("В папке \"" + pathFrom + "\" нет pdf-файлов");
+            }
 
             return files;
         }
