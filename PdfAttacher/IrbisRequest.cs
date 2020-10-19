@@ -17,7 +17,7 @@ namespace PdfAttacher
         public string FileNameFromRecord { get; set; } = string.Empty;
         public enum Status
         {
-            Founded = 1,
+            OneRecord = 1,
             NotFounded = 2,
             FewRecords = 3,
             Doublet = 4
