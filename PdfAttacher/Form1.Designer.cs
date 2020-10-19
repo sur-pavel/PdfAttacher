@@ -105,9 +105,9 @@
             // 
             this.ConnectButton.Location = new System.Drawing.Point(112, 139);
             this.ConnectButton.Name = "ConnectButton";
-            this.ConnectButton.Size = new System.Drawing.Size(75, 23);
+            this.ConnectButton.Size = new System.Drawing.Size(100, 23);
             this.ConnectButton.TabIndex = 6;
-            this.ConnectButton.Text = "Connect";
+            this.ConnectButton.Text = "Подключиться";
             this.ConnectButton.UseVisualStyleBackColor = true;
             this.ConnectButton.Click += new System.EventHandler(this.ConnectButton_Click);
             // 
@@ -157,7 +157,7 @@
             // InfoLabel
             // 
             this.InfoLabel.AutoSize = true;
-            this.InfoLabel.Location = new System.Drawing.Point(335, 144);
+            this.InfoLabel.Location = new System.Drawing.Point(384, 144);
             this.InfoLabel.Name = "InfoLabel";
             this.InfoLabel.Size = new System.Drawing.Size(0, 13);
             this.InfoLabel.TabIndex = 13;
@@ -184,11 +184,11 @@
             // 
             // DisconnectButton
             // 
-            this.DisconnectButton.Location = new System.Drawing.Point(220, 139);
+            this.DisconnectButton.Location = new System.Drawing.Point(249, 139);
             this.DisconnectButton.Name = "DisconnectButton";
-            this.DisconnectButton.Size = new System.Drawing.Size(75, 23);
+            this.DisconnectButton.Size = new System.Drawing.Size(93, 23);
             this.DisconnectButton.TabIndex = 16;
-            this.DisconnectButton.Text = "Disconnect";
+            this.DisconnectButton.Text = "Отключиться";
             this.DisconnectButton.UseVisualStyleBackColor = true;
             this.DisconnectButton.Click += new System.EventHandler(this.DisconnectButton_Click);
             // 
