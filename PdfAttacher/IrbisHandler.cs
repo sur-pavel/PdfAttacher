@@ -23,28 +23,30 @@ namespace PdfAttacher
             this.logging = logging;
         }
 
-        internal bool ConnectToServer(string login, string password, string database)
+        internal string ConnectToServer(string login, string password, string database)
         {
 
-            bool connected = false;
+            string message = "";
             try
             {
                 client.ParseConnectionString("host=194.169.10.3;port=8888; user=" + login + ";password=" + password + ";");
 
                 client.Connect();
                 client.PushDatabase(database);
-                connected = true;
+
+                message = "Подключено!";
                 logging.WriteLine("Connected to IRBIS successfully.");
+                message += " " + client.StageOfWork;
                 logging.WriteLine("Stage:" + client.StageOfWork);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message + "\n" + ex.ToString());
+                MessageBox.Show(ex.Message + "\n\n" + ex.ToString());
                 logging.WriteLine("IRBIS ERROR!");
                 logging.WriteLine(ex.StackTrace);
                 logging.WriteLine(ex.ToString());
             }
-            return connected;
+            return message;
         }
 
         internal bool Disconnect()
@@ -68,24 +70,26 @@ namespace PdfAttacher
 
         internal IrbisRequest SearchInIrbis(FileInfo fileInfo)
         {
+            logging.WriteLine("Filename: " + fileInfo.Name + "\n");
             IrbisRequest irbisRequest = new IrbisRequest();
-            string reformatFileName = ReformatFileName(fileInfo);
-            irbisRequest.Author = GetAuthor(reformatFileName);
-            irbisRequest.Title = GetTitle(reformatFileName);
-            irbisRequest.TitleKeyWords = GetTitleKeyWords(irbisRequest.Title);
-            irbisRequest.Year = GetYear(reformatFileName);
-            irbisRequest.VolNum = GetVolumeNumber(fileInfo);
+            FillIrbisRequest(fileInfo, irbisRequest);
             try
             {
 
                 if (!irbisRequest.Year.Equals("") && irbisRequest.TitleKeyWords.Length > 0)
                 {
-                    int[] foundRecordsMFN = SequentialSearch(client,
-                        irbisRequest.Author, irbisRequest.TitleKeyWords,
-                        irbisRequest.Year, irbisRequest.VolNum);
-
-                    logging.WriteLine("Filename: " + fileInfo.Name + "\n");
-                    if (foundRecordsMFN.Length < 1)
+                    int[] foundRecordsMFN = new int[] { };
+                    if (irbisRequest.VolNum.Equals(""))
+                    {
+                        foundRecordsMFN = SimpleSearch(client, irbisRequest.Author, irbisRequest.Title, irbisRequest.Year);
+                    }
+                    if (foundRecordsMFN.Length != 1)
+                    {
+                        foundRecordsMFN = SequentialSearch(client,
+                            irbisRequest.Author, irbisRequest.TitleKeyWords,
+                            irbisRequest.Year, irbisRequest.VolNum);
+                    }
+                    if (foundRecordsMFN.Length == 0)
                     {
                         logging.WriteLine("No founded records in Irbis");
                         irbisRequest.FileStatus = IrbisRequest.Status.NotFounded;
@@ -94,32 +98,39 @@ namespace PdfAttacher
                     {
                         if (foundRecordsMFN.Length == 1)
                         {
-                            irbisRequest.FileStatus = IrbisRequest.Status.Founded;
-                            logging.WriteLine("Founded 1 record in Irbis with MFN " + foundRecordsMFN[0]);
+                            irbisRequest.FileStatus = IrbisRequest.Status.OneRecord;
+                            logging.WriteLine("1 record founded in Irbis");
                         }
                         else
                         {
                             irbisRequest.FileStatus = IrbisRequest.Status.FewRecords;
-                            logging.WriteLine("Founded " + foundRecordsMFN.Length + " in irbis");
+                            logging.WriteLine(foundRecordsMFN.Length + " records founded in irbis");
                         }
 
                         foreach (int mfn in foundRecordsMFN)
                         {
+                            logging.WriteLine("\nMFN " + mfn);
                             IrbisRecord record = client.ReadRecord(mfn);
                             irbisRequest.FileNameFromRecord = GetFileNameFromRecord(record);
                             logging.WriteLine("File name from record: " + irbisRequest.FileNameFromRecord);
                             string[] fields951A = record.FMA("951", 'A');
+                            bool field951exist = false;
                             foreach (string field in fields951A)
                             {
-                                if (!field.Equals(""))
+                                if (!field.Equals("") && !field.Contains("FULLTEXT"))
                                 {
-                                    irbisRequest.FileStatus = IrbisRequest.Status.Doublet;
+                                    field951exist = true;
+                                    if (irbisRequest.FileStatus == IrbisRequest.Status.OneRecord)
+                                    {
+                                        irbisRequest.FileStatus = IrbisRequest.Status.Doublet;
+
+                                    }
                                     break;
-                                }
+                                }                                
                             }
-                            if (irbisRequest.FileStatus != IrbisRequest.Status.Doublet)
+                            if (!field951exist)
                             {
-                                //WriteToRecord(record, fileInfo);
+                                WriteToRecord(record, fileInfo);
                             }
                         }
                     }
@@ -134,6 +145,17 @@ namespace PdfAttacher
                 logging.WriteLine(ex.ToString());
             }
             return irbisRequest;
+        }
+
+       
+        private void FillIrbisRequest(FileInfo fileInfo, IrbisRequest irbisRequest)
+        {
+            string reformatFileName = ReformatFileName(fileInfo);
+            irbisRequest.Author = GetAuthor(reformatFileName);
+            irbisRequest.Title = GetTitle(reformatFileName);
+            irbisRequest.TitleKeyWords = GetTitleKeyWords(irbisRequest.Title);
+            irbisRequest.Year = GetYear(reformatFileName);
+            irbisRequest.VolNum = GetVolumeNumber(fileInfo);
         }
 
         private string GetFileNameFromRecord(IrbisRecord record)
@@ -176,7 +198,7 @@ namespace PdfAttacher
         private string GetVolumeNumber(FileInfo file)
         {
             string volNum = "";
-            Match match = Regex.Match(file.Name, @"_[ЧТВК].? ?\d+_");
+            Match match = Regex.Match(file.Name, @"_[ЧТTВBКK](асть|ом|ып|ыпуск|н|нига)?\.? ?\d+(_|\s)"); /*russian and engish literals*/
             if (match.Success)
             {
                 volNum = Regex.Match(match.Value, @"\d+").Value;
@@ -220,9 +242,7 @@ namespace PdfAttacher
                         filteredKeyWords.Add(string.Format("v200:'{0}'", keyWord));
                     }
                 }
-
                 filteredKeyWords.Add("v900^b:'05'");
-
             }
 
             else
@@ -249,7 +269,7 @@ namespace PdfAttacher
 
             //searchTitle = "v200: 'Жизнь' and v200: 'митрополита'";
 
-            logging.WriteLine("Therm for search title: " + searchTitle);
+            logging.WriteLine("---Sequential Search\nTherm for search title: " + searchTitle);
             logging.WriteLine("Therm for search year: " + searchYear);
 
 
@@ -258,13 +278,13 @@ namespace PdfAttacher
             if (foundRecordsMFN.Length < 1 && titleKeyWords.Length > 3)
             {
                 Array.Resize(ref titleKeyWords, 3);
-                SequentialSearch(client, author, titleKeyWords, year, volNum);
+                foundRecordsMFN = SequentialSearch(client, author, titleKeyWords, year, volNum);
             }
             if (foundRecordsMFN.Length < 1 && titleKeyWords.Length > 2)
             {
                 Array.Resize(ref titleKeyWords, 2);
-                SequentialSearch(client, author, titleKeyWords, year, volNum);
-            }            
+                foundRecordsMFN = SequentialSearch(client, author, titleKeyWords, year, volNum);
+            }
             return foundRecordsMFN;
         }
 
@@ -276,7 +296,7 @@ namespace PdfAttacher
             builder.AppendFormat("*\"G={0}$\"", year);
 
             string searchTherm = builder.ToString();
-            logging.WriteLine("Search Therm: " + searchTherm);
+            logging.WriteLine("---Simple search\nSearch Therm: " + searchTherm);
 
             return client.Search(searchTherm);
         }
@@ -315,6 +335,7 @@ namespace PdfAttacher
             foreach (string titleKeyWord in titleKeyWords)
             {
                 string keyWord = stemmer.Stem(titleKeyWord);
+                keyWord = ReduceIfMatch(keyWord);
                 if (keyWord.Length > 2)
                 {
                     if (notRus == true && !Regex.IsMatch(keyWord, "[A-z]"))
@@ -325,6 +346,12 @@ namespace PdfAttacher
                 }
             }
             return keyWords.ToArray();
+        }
+
+        private string ReduceIfMatch(string keyWord)
+        {
+            if (Regex.IsMatch(keyWord.ToLower(), "^учеб[а-я]+")) keyWord = "учеб";
+            return keyWord;
         }
 
         internal string GetYear(string fileName)
@@ -350,15 +377,24 @@ namespace PdfAttacher
 
         private void WriteToRecord(IrbisRecord record, FileInfo fileInfo)
         {
-            record.AddField("951", 'A', fileInfo.Name);
-            //record.AddField("907", 'C', STAGE_OF_WORK, 'A', DateTime.Now.ToString("yyyyMMdd"), 'B', this.user);
+            string[] fields951A = record.FMA("951", 'A');
+            logging.WriteLine("found " + fields951A.Length + " fields with tag 951");
+            for (int i = 0; i < fields951A.Length ; i++)
+            {
+                logging.WriteLine("Field 951A occurrence " + i + " text: " + fields951A[i]);
+                if (fields951A[i].Contains("FULLTEXT"))
+                {                    
+                    record.RemoveField("951", i);
+                }
+            }
+            record.AddField("951", 'A', fileInfo.Name, 'H', "01a", '2', "8m");
+            //record.AddField("907", 'C', "Auto951Opac", 'A', DateTime.Now.ToString("yyyyMMdd"), 'B', this.user);
             try
             {
                 int mfn = record.Mfn;
-
                 client.WriteRecord(record, false, true);
                 record = client.ReadRecord(mfn);
-                logging.WriteLine("Write to 951 field: " + record.FM("951", 'A'));
+                logging.WriteLine("Write to record with mfn " + mfn + " field 951: " + record.FM("951", 'A'));
             }
             catch (Exception ex)
             {
